@@ -16,9 +16,28 @@ A Model Context Protocol (MCP) server that provides unified access to **Google A
 
 ---
 
-## Quick Install for Claude Code
+## Quick Start for Claude Code
 
-The fastest way to add this MCP server to Claude Code:
+### 1. Set up OAuth credentials
+
+First, create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/):
+1. Create a new project or select existing one
+2. Enable APIs: **Google Analytics Admin API**, **Google Analytics Data API**, **Google Search Console API**, **AdSense Management API**
+3. Create **OAuth client ID** (Desktop app type)
+4. Copy your **Client ID** and **Client Secret**
+
+### 2. Authenticate (one-time setup)
+
+```bash
+# Set your credentials
+export GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+export GOOGLE_CLIENT_SECRET="your-client-secret"
+
+# Run authentication (opens browser)
+npx mcp-google-marketing auth
+```
+
+### 3. Add to Claude Code
 
 ```bash
 claude mcp add google-marketing npx mcp-google-marketing \
@@ -26,7 +45,7 @@ claude mcp add google-marketing npx mcp-google-marketing \
   --env GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-> **Note:** You need to create OAuth credentials first. See [Configuration](#configuration) section.
+That's it! The server is now available in Claude Code.
 
 ---
 
@@ -43,14 +62,16 @@ claude mcp add google-marketing npx mcp-google-marketing \
 No installation required:
 
 ```bash
-npx mcp-google-marketing
+npx mcp-google-marketing auth    # Authenticate first
+npx mcp-google-marketing         # Start server
 ```
 
 ### Via npm (Global)
 
 ```bash
 npm install -g mcp-google-marketing
-mcp-google-marketing
+mcp-google-marketing auth        # Authenticate first
+mcp-google-marketing             # Start server
 ```
 
 ### From Source (Development)
@@ -60,6 +81,27 @@ git clone https://github.com/freema/mcp-google-marketing.git
 cd mcp-google-marketing
 npm install
 npm run build
+```
+
+---
+
+## CLI Commands
+
+```bash
+# Authenticate with Google (opens browser)
+npx mcp-google-marketing auth
+
+# Check authentication status
+npx mcp-google-marketing auth --status
+
+# Remove stored tokens (logout)
+npx mcp-google-marketing auth --logout
+
+# Start MCP server (for Claude Code/Desktop)
+npx mcp-google-marketing
+
+# Show help
+npx mcp-google-marketing --help
 ```
 
 ---
@@ -109,9 +151,15 @@ GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-### Step 5: First-time Authorization
+### Step 5: Authenticate
 
-On first run, the server will:
+Run the authentication command to complete OAuth setup:
+
+```bash
+npx mcp-google-marketing auth
+```
+
+This will:
 1. Open your browser for Google OAuth authorization
 2. Ask you to sign in and grant permissions
 3. Save tokens to `.credentials/tokens.json`
@@ -119,6 +167,18 @@ On first run, the server will:
 ---
 
 ## Usage
+
+### Claude Code
+
+```bash
+# 1. Authenticate first (if not done already)
+npx mcp-google-marketing auth
+
+# 2. Add the MCP server
+claude mcp add google-marketing npx mcp-google-marketing \
+  --env GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com \
+  --env GOOGLE_CLIENT_SECRET=your-client-secret
+```
 
 ### Claude Desktop
 
@@ -139,17 +199,17 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-### Claude Code
-
-```bash
-claude mcp add google-marketing npx mcp-google-marketing \
-  --env GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com \
-  --env GOOGLE_CLIENT_SECRET=your-client-secret
-```
+**Important:** Run `npx mcp-google-marketing auth` in your terminal first to authenticate before using with Claude Desktop.
 
 ---
 
 ## Available Tools
+
+### Utility (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `auth_status` | Check OAuth authentication status |
 
 ### Google Analytics 4 (22 tools)
 
@@ -299,18 +359,11 @@ npm run check:all
 Debug and test your tools:
 
 ```bash
-# With built version
-npm run inspector
+# First authenticate
+npm run build
+node -r dotenv/config dist/index.js auth
 
-# With development version
-npm run inspector:dev
-```
-
-**Important:** For first-time setup, run the server manually to complete OAuth:
-
-```bash
-node -r dotenv/config dist/index.js
-# After OAuth completes, use the inspector
+# Then run inspector
 npm run inspector
 ```
 
@@ -318,7 +371,7 @@ npm run inspector
 
 ```
 src/
-├── index.ts              # Server entry point
+├── index.ts              # Server entry point + CLI
 ├── config/
 │   └── constants.ts      # Configuration constants
 ├── tools/
@@ -341,6 +394,16 @@ src/
 
 ## Troubleshooting
 
+### "Authentication required" error in Claude Code
+
+You need to authenticate before using the server:
+
+```bash
+npx mcp-google-marketing auth
+```
+
+Then restart Claude Code to reconnect the MCP server.
+
 ### "Access blocked: app has not completed Google verification"
 
 Your OAuth app is in testing mode:
@@ -352,20 +415,19 @@ Your OAuth app is in testing mode:
 Revoke app access and re-authorize:
 1. Go to [Google Account Permissions](https://myaccount.google.com/permissions)
 2. Find and remove the app
-3. Delete tokens: `rm -rf .credentials/`
-4. Restart the server
+3. Delete tokens: `npx mcp-google-marketing auth --logout`
+4. Re-authenticate: `npx mcp-google-marketing auth`
 
 ### Port 8085 already in use
 
 The OAuth callback server uses port 8085:
-1. Stop other services using that port
+1. Stop other services using that port: `lsof -i :8085`
 2. Or modify `OAUTH_CONFIG.port` in `src/config/constants.ts`
 
-### Debug Mode
+### Check authentication status
 
-Enable verbose logging:
 ```bash
-DEBUG=mcp:* npx mcp-google-marketing
+npx mcp-google-marketing auth --status
 ```
 
 ---

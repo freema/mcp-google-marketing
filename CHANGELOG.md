@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-11-23
+
+### Fixed
+
+- **OAuth authentication flow** - Server no longer blocks on OAuth during startup
+  - Fixed timeout issues when using with Claude Code
+  - MCP server now starts immediately without waiting for authentication
+
+### Added
+
+- **CLI commands for authentication**
+  - `npx mcp-google-marketing auth` - Authenticate with Google OAuth (opens browser)
+  - `npx mcp-google-marketing auth --status` - Check authentication status
+  - `npx mcp-google-marketing auth --logout` - Remove stored OAuth tokens
+  - `npx mcp-google-marketing --help` - Show help message
+
+- **New `auth_status` tool** - Check OAuth status directly from Claude Code
+
+### Changed
+
+- Authentication is now a separate step before adding to Claude Code
+- Tools return helpful error messages with authentication instructions when not authenticated
+- Updated README with new authentication workflow
+
 ## [1.0.0] - 2024-11-23
 
 ### Added
@@ -55,5 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.1]: https://github.com/freema/mcp-google-marketing/releases/tag/v1.0.1
 [1.0.0]: https://github.com/freema/mcp-google-marketing/releases/tag/v1.0.0
-[Unreleased]: https://github.com/freema/mcp-google-marketing/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/freema/mcp-google-marketing/compare/v1.0.1...HEAD
