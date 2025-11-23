@@ -1,3 +1,4 @@
+import { ToolResponse } from '../../types/common.js';
 import { listAccountsTool, handleListAccounts } from './list-accounts.js';
 import { getAccountTool, handleGetAccount } from './get-account.js';
 import { listAdClientsTool, handleListAdClients } from './list-ad-clients.js';
@@ -14,7 +15,8 @@ export const adsenseTools = [
   generateReportTool,
 ];
 
-export const adsenseHandlers: Record<string, (args: unknown) => Promise<unknown>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const adsenseHandlers: Record<string, (args: any) => Promise<ToolResponse>> = {
   adsense_list_accounts: handleListAccounts,
   adsense_get_account: handleGetAccount,
   adsense_list_ad_clients: handleListAdClients,

@@ -8,6 +8,12 @@ export const GOOGLE_SCOPES = {
 
 export const ALL_SCOPES = Object.values(GOOGLE_SCOPES);
 
+// OAuth Configuration
+export const OAUTH_CONFIG = {
+  port: 8085,
+  redirectUri: 'http://localhost:8085/callback',
+} as const;
+
 // API Versions
 export const API_VERSIONS = {
   GA4_ADMIN: 'v1',

@@ -2,25 +2,45 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-import { validateAuth } from './utils/google-auth.js';
+import { validateAuth, isAuthComplete } from './utils/google-auth.js';
+import { performOAuthFlow } from './utils/oauth-flow.js';
+import { getTokensFilePath } from './utils/token-storage.js';
 import { allTools, allHandlers } from './tools/index.js';
 
 const SERVER_NAME = 'mcp-google-marketing';
 const SERVER_VERSION = '1.0.0';
 
 async function main() {
-  // Validate authentication on startup
+  // Validate OAuth credentials are configured
   try {
     validateAuth();
   } catch (error) {
-    console.error('Authentication validation failed:', error instanceof Error ? error.message : error);
-    console.error('Please configure Google authentication before starting the server.');
+    console.error(
+      'Authentication validation failed:',
+      error instanceof Error ? error.message : error
+    );
+    console.error('\nPlease configure OAuth credentials before starting the server.');
     process.exit(1);
+  }
+
+  // Check if OAuth tokens exist, run OAuth flow if not
+  const authComplete = await isAuthComplete();
+  if (!authComplete) {
+    console.error('\n========================================');
+    console.error('First-time setup required');
+    console.error('========================================\n');
+    console.error('No OAuth tokens found. Starting authorization flow...\n');
+
+    try {
+      await performOAuthFlow();
+      console.error('OAuth setup complete!');
+      console.error(`Tokens saved to: ${getTokensFilePath()}\n`);
+    } catch (error) {
+      console.error('OAuth setup failed:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
   }
 
   const server = new Server(

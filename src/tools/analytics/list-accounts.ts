@@ -5,7 +5,7 @@ import { createToolResponse, createErrorResponse, ToolResponse } from '../../typ
 
 export const listAccountsTool = {
   name: 'ga4_list_accounts',
-  description: 'List all GA4 accounts accessible by the service account',
+  description: 'List all GA4 accounts accessible by the authenticated user',
   inputSchema: {
     type: 'object' as const,
     properties: {},

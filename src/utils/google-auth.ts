@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { AnalyticsAdminServiceClient } from '@google-analytics/admin';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import { ALL_SCOPES } from '../config/constants.js';
+import { loadTokens, hasValidTokens, StoredTokens } from './token-storage.js';
 
 // Cached clients
 let analyticsAdminClient: AnalyticsAdminServiceClient | null = null;
@@ -9,115 +10,81 @@ let analyticsDataClient: BetaAnalyticsDataClient | null = null;
 let searchConsoleClient: ReturnType<typeof google.searchconsole> | null = null;
 let adsenseClient: ReturnType<typeof google.adsense> | null = null;
 
-interface ServiceAccountCredentials {
-  type: string;
-  project_id?: string;
-  private_key: string;
-  client_email: string;
-}
+// Cached OAuth2 client
+let oauth2Client: InstanceType<typeof google.auth.OAuth2> | null = null;
 
 /**
- * Gets service account credentials from environment
+ * Creates and returns an OAuth2 client with stored tokens
  */
-function getCredentials(): ServiceAccountCredentials {
-  // Priority 1: File-based authentication
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+async function getOAuth2Client(): Promise<InstanceType<typeof google.auth.OAuth2>> {
+  if (oauth2Client) {
+    return oauth2Client;
   }
 
-  // Priority 2: JSON string authentication
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-    return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  }
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-  // Priority 3: Private key + email authentication
-  if (process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_CLIENT_EMAIL) {
-    const result: ServiceAccountCredentials = {
-      type: 'service_account',
-      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    };
-    if (process.env.GOOGLE_PROJECT_ID) {
-      result.project_id = process.env.GOOGLE_PROJECT_ID;
-    }
-    return result;
-  }
-
-  throw new Error('No valid credentials found');
-}
-
-/**
- * Validates that at least one authentication method is configured
- */
-export function validateAuth(): void {
-  const hasFileAuth = !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  const hasJsonAuth = !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const hasPrivateKeyAuth = !!process.env.GOOGLE_PRIVATE_KEY && !!process.env.GOOGLE_CLIENT_EMAIL;
-
-  if (!hasFileAuth && !hasJsonAuth && !hasPrivateKeyAuth) {
+  if (!clientId || !clientSecret) {
     throw new Error(
-      'No authentication method provided. Please set one of:\n' +
-        '- GOOGLE_APPLICATION_CREDENTIALS to the path of your service account key file\n' +
-        '- GOOGLE_SERVICE_ACCOUNT_KEY to the JSON string of your service account credentials\n' +
-        '- GOOGLE_PRIVATE_KEY and GOOGLE_CLIENT_EMAIL for direct private key authentication'
+      'Missing OAuth credentials. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.'
     );
   }
 
-  // Validate private key authentication
-  if (!hasFileAuth && !hasJsonAuth && hasPrivateKeyAuth) {
-    if (!process.env.GOOGLE_PRIVATE_KEY) {
-      throw new Error('GOOGLE_PRIVATE_KEY is required when using private key authentication');
-    }
-    if (!process.env.GOOGLE_CLIENT_EMAIL) {
-      throw new Error('GOOGLE_CLIENT_EMAIL is required when using private key authentication');
-    }
-
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-    if (!privateKey.includes('BEGIN PRIVATE KEY') || !privateKey.includes('END PRIVATE KEY')) {
-      throw new Error(
-        'GOOGLE_PRIVATE_KEY appears to be invalid. ' +
-          'It should start with -----BEGIN PRIVATE KEY----- and end with -----END PRIVATE KEY-----'
-      );
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(process.env.GOOGLE_CLIENT_EMAIL)) {
-      throw new Error(
-        'GOOGLE_CLIENT_EMAIL appears to be invalid. ' +
-          'It should be a valid email address (e.g., your-service-account@your-project.iam.gserviceaccount.com)'
-      );
-    }
+  const tokens = await loadTokens();
+  if (!tokens) {
+    throw new Error('No OAuth tokens found. Please run the server to complete OAuth setup.');
   }
 
-  // Validate JSON authentication
-  if (!hasFileAuth && hasJsonAuth) {
-    try {
-      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY!);
+  oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
 
-      if (!credentials.type || credentials.type !== 'service_account') {
-        throw new Error('Invalid service account: type must be "service_account"');
-      }
-      if (!credentials.private_key) {
-        throw new Error('Invalid service account: missing private_key');
-      }
-      if (!credentials.client_email) {
-        throw new Error('Invalid service account: missing client_email');
-      }
+  oauth2Client.setCredentials({
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    token_type: tokens.token_type,
+    expiry_date: tokens.expiry_date,
+  });
 
-      if (!process.env.GOOGLE_PROJECT_ID && credentials.project_id) {
-        process.env.GOOGLE_PROJECT_ID = credentials.project_id;
-      }
-    } catch (error: unknown) {
-      if (error instanceof SyntaxError) {
-        throw new Error(
-          'GOOGLE_SERVICE_ACCOUNT_KEY contains invalid JSON. ' +
-            'Please ensure it is a valid JSON string.'
-        );
-      }
-      throw error;
-    }
+  // Set up automatic token refresh
+  oauth2Client.on('tokens', async (newTokens) => {
+    const { saveTokens } = await import('./token-storage.js');
+    const currentTokens = await loadTokens();
+
+    const updatedTokens: StoredTokens = {
+      access_token: newTokens.access_token || currentTokens?.access_token || '',
+      refresh_token: newTokens.refresh_token || currentTokens?.refresh_token || '',
+      token_type: newTokens.token_type || 'Bearer',
+      expiry_date: newTokens.expiry_date || Date.now() + 3600 * 1000,
+      scope: newTokens.scope || currentTokens?.scope || ALL_SCOPES.join(' '),
+    };
+
+    await saveTokens(updatedTokens);
+  });
+
+  return oauth2Client;
+}
+
+/**
+ * Validates that OAuth credentials are configured
+ */
+export function validateAuth(): void {
+  const hasClientId = !!process.env.GOOGLE_CLIENT_ID;
+  const hasClientSecret = !!process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!hasClientId || !hasClientSecret) {
+    throw new Error(
+      'Missing OAuth credentials. Please set the following environment variables:\n' +
+        '- GOOGLE_CLIENT_ID: Your OAuth 2.0 Client ID\n' +
+        '- GOOGLE_CLIENT_SECRET: Your OAuth 2.0 Client Secret\n\n' +
+        'You can create these at: https://console.cloud.google.com/apis/credentials'
+    );
   }
+}
+
+/**
+ * Checks if OAuth setup is complete (tokens exist)
+ */
+export async function isAuthComplete(): Promise<boolean> {
+  return await hasValidTokens();
 }
 
 /**
@@ -128,24 +95,12 @@ export async function getAnalyticsAdminClient(): Promise<AnalyticsAdminServiceCl
     return analyticsAdminClient;
   }
 
-  const credentials = getCredentials();
+  const auth = await getOAuth2Client();
 
-  const options: {
-    credentials: { client_email: string; private_key: string };
-    projectId?: string;
-  } = {
-    credentials: {
-      client_email: credentials.client_email,
-      private_key: credentials.private_key,
-    },
-  };
-
-  const projectId = credentials.project_id ?? process.env.GOOGLE_PROJECT_ID;
-  if (projectId) {
-    options.projectId = projectId;
-  }
-
-  analyticsAdminClient = new AnalyticsAdminServiceClient(options);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analyticsAdminClient = new AnalyticsAdminServiceClient({
+    authClient: auth as any,
+  });
 
   return analyticsAdminClient;
 }
@@ -158,24 +113,12 @@ export async function getAnalyticsDataClient(): Promise<BetaAnalyticsDataClient>
     return analyticsDataClient;
   }
 
-  const credentials = getCredentials();
+  const auth = await getOAuth2Client();
 
-  const options: {
-    credentials: { client_email: string; private_key: string };
-    projectId?: string;
-  } = {
-    credentials: {
-      client_email: credentials.client_email,
-      private_key: credentials.private_key,
-    },
-  };
-
-  const projectId = credentials.project_id ?? process.env.GOOGLE_PROJECT_ID;
-  if (projectId) {
-    options.projectId = projectId;
-  }
-
-  analyticsDataClient = new BetaAnalyticsDataClient(options);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analyticsDataClient = new BetaAnalyticsDataClient({
+    authClient: auth as any,
+  });
 
   return analyticsDataClient;
 }
@@ -188,13 +131,7 @@ export async function getSearchConsoleClient() {
     return searchConsoleClient;
   }
 
-  const credentials = getCredentials();
-
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ALL_SCOPES,
-  });
+  const auth = await getOAuth2Client();
 
   searchConsoleClient = google.searchconsole({
     version: 'v1',
@@ -212,13 +149,7 @@ export async function getAdsenseClient() {
     return adsenseClient;
   }
 
-  const credentials = getCredentials();
-
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ['https://www.googleapis.com/auth/adsense.readonly'],
-  });
+  const auth = await getOAuth2Client();
 
   adsenseClient = google.adsense({
     version: 'v2',
@@ -229,11 +160,12 @@ export async function getAdsenseClient() {
 }
 
 /**
- * Resets all cached clients (useful for testing)
+ * Resets all cached clients (useful for testing or re-authentication)
  */
 export function resetClients(): void {
   analyticsAdminClient = null;
   analyticsDataClient = null;
   searchConsoleClient = null;
   adsenseClient = null;
+  oauth2Client = null;
 }

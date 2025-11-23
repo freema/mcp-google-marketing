@@ -1,17 +1,29 @@
 {
   "name": "mcp-google-marketing",
   "version": "1.0.0",
-  "description": "MCP server for Google Analytics 4, Search Console, and Google AdSense",
+  "description": "Model Context Protocol (MCP) server for Google Analytics 4, Search Console, and AdSense",
+  "author": "freema",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
-    "mcp-google-marketing": "dist/index.js"
+    "mcp-google-marketing": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup",
     "start": "node dist/index.js",
+    "clean": "rm -rf dist coverage",
+    "prepublishOnly": "npm run check:all",
     "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "inspector:dev": "npx @modelcontextprotocol/inspector npx tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
@@ -20,6 +32,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "check:all": "npm run check && npm run test:run && npm run build"
   },
@@ -28,6 +41,7 @@
     "@google-analytics/data": "^4.0.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "googleapis": "^140.0.0",
+    "open": "^10.1.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -50,11 +64,25 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "google-analytics",
     "ga4",
     "search-console",
     "google-adsense",
-    "model-context-protocol"
+    "adsense",
+    "claude",
+    "ai",
+    "google-api"
   ],
-  "license": "MIT"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freema/mcp-google-marketing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/freema/mcp-google-marketing/issues"
+  },
+  "homepage": "https://github.com/freema/mcp-google-marketing#readme",
+  "publishConfig": {
+    "access": "public"
+  }
 }

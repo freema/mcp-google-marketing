@@ -19,8 +19,14 @@ export const GenerateReportSchema = z.object({
   accountId: z.string().describe('AdSense account ID'),
   startDate: z.string().describe('Start date (YYYY-MM-DD)'),
   endDate: z.string().describe('End date (YYYY-MM-DD)'),
-  metrics: z.array(z.string()).optional().describe('Metrics to include (default: ESTIMATED_EARNINGS, PAGE_VIEWS, CLICKS, IMPRESSIONS)'),
-  dimensions: z.array(z.string()).optional().describe('Dimensions to group by (e.g., DATE, COUNTRY_NAME, AD_UNIT_NAME)'),
+  metrics: z
+    .array(z.string())
+    .optional()
+    .describe('Metrics to include (default: ESTIMATED_EARNINGS, PAGE_VIEWS, CLICKS, IMPRESSIONS)'),
+  dimensions: z
+    .array(z.string())
+    .optional()
+    .describe('Dimensions to group by (e.g., DATE, COUNTRY_NAME, AD_UNIT_NAME)'),
 });
 
 export type AccountIdInput = z.infer<typeof AccountIdSchema>;

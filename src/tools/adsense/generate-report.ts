@@ -24,7 +24,8 @@ export const generateReportTool = {
       metrics: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Metrics to include (default: ESTIMATED_EARNINGS, PAGE_VIEWS, CLICKS, IMPRESSIONS)',
+        description:
+          'Metrics to include (default: ESTIMATED_EARNINGS, PAGE_VIEWS, CLICKS, IMPRESSIONS)',
       },
       dimensions: {
         type: 'array',
@@ -47,7 +48,8 @@ export async function handleGenerateReport(args: unknown): Promise<ToolResponse>
     const defaultMetrics = ['ESTIMATED_EARNINGS', 'PAGE_VIEWS', 'CLICKS', 'IMPRESSIONS'];
     const requestMetrics = metrics || defaultMetrics;
 
-    const response = await adsense.accounts.reports.generate({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (adsense.accounts.reports.generate as any)({
       account: accountId,
       'dateRange.startDate.year': startYear,
       'dateRange.startDate.month': startMonth,
@@ -59,8 +61,8 @@ export async function handleGenerateReport(args: unknown): Promise<ToolResponse>
       dimensions: dimensions || ['DATE'],
     });
 
-    const headers = response.data.headers?.map((h) => h.name) || [];
-    const rows = (response.data.rows || []).map((row) => {
+    const headers = response.data?.headers?.map((h: { name?: string }) => h.name) || [];
+    const rows = (response.data?.rows || []).map((row: { cells?: Array<{ value?: string }> }) => {
       const rowData: Record<string, unknown> = {};
       row.cells?.forEach((cell, index) => {
         const header = headers[index] || `col${index}`;
@@ -74,8 +76,8 @@ export async function handleGenerateReport(args: unknown): Promise<ToolResponse>
       headers,
       rows,
       rowCount: rows.length,
-      totals: response.data.totals,
-      averages: response.data.averages,
+      totals: response.data?.totals,
+      averages: response.data?.averages,
     });
   } catch (error) {
     return createErrorResponse(formatGoogleApiError(error, 'Failed to generate AdSense report'));

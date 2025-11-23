@@ -40,8 +40,12 @@ export async function handleUpdateProperty(
     const client = await getAnalyticsAdminClient();
 
     const updateMask: string[] = [];
-    const property: { name: string; displayName?: string; timeZone?: string; currencyCode?: string } =
-      { name: propertyId };
+    const property: {
+      name: string;
+      displayName?: string;
+      timeZone?: string;
+      currencyCode?: string;
+    } = { name: propertyId };
 
     if (displayName !== undefined) {
       property.displayName = displayName;
@@ -57,7 +61,9 @@ export async function handleUpdateProperty(
     }
 
     if (updateMask.length === 0) {
-      return createErrorResponse('No fields to update. Provide at least one of: displayName, timeZone, currencyCode');
+      return createErrorResponse(
+        'No fields to update. Provide at least one of: displayName, timeZone, currencyCode'
+      );
     }
 
     const [updatedProperty] = await client.updateProperty({

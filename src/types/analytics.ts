@@ -69,18 +69,14 @@ export const CreateAppStreamInputSchema = z
 
 export const UpdateDataStreamInputSchema = z
   .object({
-    streamId: z
-      .string()
-      .describe('Full stream ID (e.g., "properties/123/dataStreams/456")'),
+    streamId: z.string().describe('Full stream ID (e.g., "properties/123/dataStreams/456")'),
     displayName: z.string().optional().describe('New display name'),
   })
   .strict();
 
 export const GetMeasurementIdInputSchema = z
   .object({
-    streamId: z
-      .string()
-      .describe('Full stream ID (e.g., "properties/123/dataStreams/456")'),
+    streamId: z.string().describe('Full stream ID (e.g., "properties/123/dataStreams/456")'),
   })
   .strict();
 

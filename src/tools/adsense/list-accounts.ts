@@ -4,7 +4,7 @@ import { formatGoogleApiError } from '../../utils/error-messages.js';
 
 export const listAccountsTool = {
   name: 'adsense_list_accounts',
-  description: 'List all AdSense accounts accessible by the service account',
+  description: 'List all AdSense accounts accessible by the authenticated user',
   inputSchema: {
     type: 'object' as const,
     properties: {},
@@ -23,7 +23,6 @@ export async function handleListAccounts(): Promise<ToolResponse> {
       state: account.state,
       createTime: account.createTime,
       timeZone: account.timeZone?.id,
-      reportingTimeZone: account.reportingTimeZone?.id,
     }));
 
     return createToolResponse({

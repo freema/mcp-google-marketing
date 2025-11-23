@@ -5,7 +5,8 @@ import { createToolResponse, createErrorResponse, ToolResponse } from '../../typ
 
 export const searchAnalyticsTool = {
   name: 'gsc_search_analytics',
-  description: 'Query search analytics data from Google Search Console (impressions, clicks, CTR, position)',
+  description:
+    'Query search analytics data from Google Search Console (impressions, clicks, CTR, position)',
   inputSchema: {
     type: 'object' as const,
     properties: {
@@ -24,7 +25,8 @@ export const searchAnalyticsTool = {
       dimensions: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Dimensions to group by (country, device, page, query, searchAppearance, date)',
+        description:
+          'Dimensions to group by (country, device, page, query, searchAppearance, date)',
       },
       type: {
         type: 'string',

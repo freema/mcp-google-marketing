@@ -33,7 +33,6 @@ export async function handleGetAccount(args: unknown): Promise<ToolResponse> {
       state: response.data.state,
       createTime: response.data.createTime,
       timeZone: response.data.timeZone?.id,
-      reportingTimeZone: response.data.reportingTimeZone?.id,
       premium: response.data.premium,
     });
   } catch (error) {

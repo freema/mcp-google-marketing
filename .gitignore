@@ -1,3 +1,16 @@
+# OAuth credentials (keep folder, ignore contents)
+.credentials/*
+!.credentials/.gitkeep
+
+# Claude Code
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
 # Logs
 logs
 *.log
