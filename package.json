@@ -1,0 +1,60 @@
+{
+  "name": "mcp-google-marketing",
+  "version": "1.0.0",
+  "description": "MCP server for Google Analytics 4, Search Console, and Google AdSense",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-google-marketing": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run typecheck && npm run lint && npm run format:check",
+    "check:all": "npm run check && npm run test:run && npm run build"
+  },
+  "dependencies": {
+    "@google-analytics/admin": "^4.0.0",
+    "@google-analytics/data": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "googleapis": "^140.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "dotenv": "^16.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "google-analytics",
+    "ga4",
+    "search-console",
+    "google-adsense",
+    "model-context-protocol"
+  ],
+  "license": "MIT"
+}
