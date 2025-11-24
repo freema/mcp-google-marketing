@@ -1,6 +1,6 @@
 {
   "name": "mcp-google-marketing",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Model Context Protocol (MCP) server for Google Analytics 4, Search Console, and AdSense",
   "author": "freema",
   "license": "MIT",

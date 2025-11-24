@@ -10,7 +10,7 @@ import { getTokensFilePath, deleteTokens, loadTokens } from './utils/token-stora
 import { allTools, allHandlers } from './tools/index.js';
 
 const SERVER_NAME = 'mcp-google-marketing';
-const SERVER_VERSION = '1.0.1';
+const SERVER_VERSION = '1.0.2';
 
 /**
  * Handle CLI commands (auth, auth --status, auth --logout)

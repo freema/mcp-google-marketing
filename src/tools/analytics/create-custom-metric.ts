@@ -3,6 +3,40 @@ import { getAnalyticsAdminClient } from '../../utils/google-auth.js';
 import { CreateCustomMetricInputSchema } from '../../types/analytics.js';
 import { createToolResponse, createErrorResponse, ToolResponse } from '../../types/common.js';
 
+/**
+ * Sanitize displayName for GA4 API
+ * - Only allows letters, numbers, spaces, and underscores
+ * - Replaces other characters with underscores
+ * - Trims leading/trailing whitespace
+ */
+function sanitizeDisplayName(name: string): string {
+  return name
+    .trim()
+    .replace(/[^a-zA-Z0-9\s_]/g, '_') // Replace invalid chars with underscore
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+}
+
+/**
+ * Map measurementUnit string to numeric enum value
+ * Based on @google-analytics/admin protos
+ */
+function mapMeasurementUnitToEnum(unit: string): number {
+  const unitMap: Record<string, number> = {
+    STANDARD: 1,
+    CURRENCY: 2,
+    FEET: 3,
+    METERS: 4,
+    KILOMETERS: 5,
+    MILES: 6,
+    MILLISECONDS: 7,
+    SECONDS: 8,
+    MINUTES: 9,
+    HOURS: 10,
+  };
+  return unitMap[unit] || 1; // Default to STANDARD if unknown
+}
+
 export const createCustomMetricTool = {
   name: 'ga4_create_custom_metric',
   description: 'Create a custom metric in GA4',
@@ -19,7 +53,8 @@ export const createCustomMetricTool = {
       },
       displayName: {
         type: 'string',
-        description: 'Display name for the metric',
+        description:
+          'Display name for the metric (special characters will be replaced with underscores)',
       },
       measurementUnit: {
         type: 'string',
@@ -55,17 +90,20 @@ export async function handleCreateCustomMetric(
 
     const client = await getAnalyticsAdminClient();
 
+    // Sanitize displayName to remove invalid characters
+    const sanitizedDisplayName = sanitizeDisplayName(displayName);
+
     const customMetric: {
       parameterName: string;
       displayName: string;
-      measurementUnit: string;
-      scope: string;
+      measurementUnit: number;
+      scope: number;
       description?: string;
     } = {
       parameterName,
-      displayName,
-      measurementUnit: `MEASUREMENT_UNIT_${measurementUnit}`,
-      scope: 'METRIC_SCOPE_EVENT',
+      displayName: sanitizedDisplayName,
+      measurementUnit: mapMeasurementUnitToEnum(measurementUnit),
+      scope: 1, // EVENT = 1 (only valid scope for custom metrics)
     };
 
     if (description) {
@@ -85,6 +123,10 @@ export async function handleCreateCustomMetric(
       measurementUnit: metric.measurementUnit,
       scope: metric.scope,
       description: metric.description,
+      note:
+        sanitizedDisplayName !== displayName
+          ? `displayName was sanitized from "${displayName}" to "${sanitizedDisplayName}"`
+          : undefined,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
