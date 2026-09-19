@@ -22,12 +22,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
-      - name: Configure npm authentication
-        run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
+      # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
+      # No NPM_TOKEN: the publish authenticates over GitHub OIDC, and npm
+      # attaches the provenance attestation on its own.
+      - name: Verify npm supports trusted publishing
+        run: |
+          NPM_VERSION=$(npm --version)
+          echo "npm $NPM_VERSION"
+          REQUIRED=11.5.1
+          if [ "$(printf '%s\n' "$REQUIRED" "$NPM_VERSION" | sort -V | head -1)" != "$REQUIRED" ]; then
+            echo "npm >= $REQUIRED required for trusted publishing, got $NPM_VERSION" >&2
+            exit 1
+          fi
 
       - name: Install dependencies
         run: npm ci
@@ -36,6 +46,4 @@ jobs:
         run: npm run check:all
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
